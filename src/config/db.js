@@ -1,19 +1,13 @@
-
 const mysql = require('mysql2');
 
-const db = mysql.createConnection({
+const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: 'mypass',
-  database: 'chiccharms'
-});
+  database: 'chiccharms',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+}).promise(); // Added .promise() here
 
-db.connect(err => {
-  if (err) {
-    console.error('Database connection failed: ' + err.stack);
-    return;
-  }
-  console.log('Connected to database.');
-});
-
-module.exports = db;
+module.exports = pool;

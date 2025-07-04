@@ -2,19 +2,16 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../config/db');
+const pool = require('../config/db'); // Changed db to pool
 
 // Secret for JWT - In a real app, this should be in an environment variable
 const jwtSecret = 'supersecretjwtkey';
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
-  db.query('SELECT * FROM managers WHERE username = ?', [username], async (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ message: 'Server error' });
-    }
+  try {
+    const [results] = await pool.query('SELECT * FROM managers WHERE username = ?', [username]);
 
     if (results.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -44,7 +41,10 @@ router.post('/login', (req, res) => {
         res.json({ token });
       }
     );
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;
