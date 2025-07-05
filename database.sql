@@ -11,16 +11,36 @@ CREATE TABLE products (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
-  price DECIMAL(10, 2) NOT NULL,
-  imageUrl VARCHAR(255)
+  price DECIMAL(10, 2) NOT NULL
 );
 
 -- Insert sample product data
-INSERT INTO products (name, description, price, imageUrl) VALUES
-('Elegant Evening Clutch', 'A beautiful clutch for a night out.', 75.00, '/images/clutch.jpg'),
-('Classic Leather Tote', 'A spacious and stylish tote for everyday use.', 120.00, '/images/tote.jpg'),
-('Bohemian Crossbody Bag', 'A chic and casual crossbody bag.', 65.00, '/images/crossbody.jpg'),
-('Stylish Backpack', 'A modern backpack for the fashion-forward woman.', 95.00, '/images/backpack.jpg');
+INSERT INTO products (name, description, price) VALUES
+('Elegant Evening Clutch', 'A beautiful clutch for a night out.', 75.00),
+('Classic Leather Tote', 'A spacious and stylish tote for everyday use.', 120.00),
+('Bohemian Crossbody Bag', 'A chic and casual crossbody bag.', 65.00),
+('Stylish Backpack', 'A modern backpack for the fashion-forward woman.', 95.00);
+
+-- Section 2.1: Product Images Table
+DROP TABLE IF EXISTS product_images;
+CREATE TABLE product_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  image_url VARCHAR(255) NOT NULL,
+  is_primary BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+-- Insert sample product image data
+INSERT INTO product_images (product_id, image_url, is_primary) VALUES
+(1, '/uploads/clutch_1.jpg', TRUE),
+(1, '/uploads/clutch_2.jpg', FALSE),
+(2, '/uploads/tote_1.jpg', TRUE),
+(2, '/uploads/tote_2.jpg', FALSE),
+(3, '/uploads/crossbody_1.jpg', TRUE),
+(3, '/uploads/crossbody_2.jpg', FALSE),
+(4, '/uploads/backpack_1.jpg', TRUE),
+(4, '/uploads/backpack_2.jpg', FALSE);
 
 -- Section 3: Managers Table
 -- Run this section to create or recreate the managers table.
