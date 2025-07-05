@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
@@ -32,7 +31,56 @@ router.get('/', authMiddleware, async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error(err);
-    res.status(500).send('Error fetching orders');
+    res.status(500).json({ message: 'Error fetching orders' });
+  }
+});
+
+// Get a single order by ID (admin only)
+router.get('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [orderRows] = await pool.query(`
+      SELECT
+        o.id AS order_id,
+        o.user_id,
+        o.customer_name,
+        o.customer_phone,
+        o.customer_address,
+        o.total_amount,
+        os.status_name AS status,
+        o.order_date,
+        u.username AS user_username,
+        u.email AS user_email
+      FROM orders o
+      JOIN order_statuses os ON o.status_id = os.id
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.id = ?
+    `, [id]);
+
+    if (orderRows.length === 0) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const [itemRows] = await pool.query(`
+      SELECT
+        oi.quantity,
+        oi.price,
+        p.name AS product_name,
+        p.imageUrl
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = ?
+    `, [id]);
+
+    const order = {
+      ...orderRows[0],
+      items: itemRows
+    };
+
+    res.json(order);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching order details' });
   }
 });
 
@@ -50,7 +98,7 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).send('Error updating order status');
+    res.status(500).json({ message: 'Error updating order status' });
   }
 });
 
@@ -66,7 +114,7 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).send('Error cancelling order');
+    res.status(500).json({ message: 'Error cancelling order' });
   }
 });
 
