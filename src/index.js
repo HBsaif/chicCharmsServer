@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const orderRoutes = require('./routes/orders');
 const orderStatusRoutes = require('./routes/orderStatuses');
+const configurationRoutes = require('./routes/configurations');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -18,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/order-statuses', orderStatusRoutes);
+app.use('/api/configurations', configurationRoutes);
 
 app.get('/', (req, res) => {
   res.send('Welcome to the Chic Charms API!');

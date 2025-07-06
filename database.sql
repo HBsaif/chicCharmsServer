@@ -96,6 +96,7 @@ CREATE TABLE orders (
   customer_address TEXT NOT NULL,
   total_amount DECIMAL(10, 2) NOT NULL,
   status_id INT NOT NULL DEFAULT 1,
+  shipping_cost DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
   order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (status_id) REFERENCES order_statuses(id)
@@ -115,7 +116,7 @@ CREATE TABLE order_items (
 );
 
 -- Insert sample order data
-INSERT INTO orders (user__id, customer_name, customer_phone, customer_address, total_amount, status_id) VALUES
+INSERT INTO orders (user_id, customer_name, customer_phone, customer_address, total_amount, status_id) VALUES
 (1, 'Test User', '123-456-7890', '123 Main St, Anytown, USA', 195.00, 1),
 (NULL, 'Guest Customer', '098-765-4321', '456 Oak Ave, Somewhere, USA', 65.00, 4);
 
@@ -124,3 +125,16 @@ INSERT INTO order_items (order_id, product_id, quantity, price) VALUES
 (1, 1, 1, 75.00),
 (1, 2, 1, 120.00),
 (2, 3, 1, 65.00);
+
+-- Section 8: Configurations Table
+DROP TABLE IF EXISTS configurations;
+CREATE TABLE configurations (
+  config_key VARCHAR(255) NOT NULL PRIMARY KEY,
+  config_value TEXT
+);
+
+INSERT INTO configurations (config_key, config_value) VALUES
+('shipping_inside_dhaka', '60.00'),
+('shipping_outside_dhaka', '120.00'),
+('facebook_link', 'https://www.facebook.com/chiccharms'),
+('instagram_link', 'https://www.instagram.com/chiccharms');
