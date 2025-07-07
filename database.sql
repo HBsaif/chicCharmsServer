@@ -156,4 +156,9 @@ INSERT INTO configurations (config_key, config_value) VALUES
 ('shipping_inside_dhaka', '60.00'),
 ('shipping_outside_dhaka', '120.00'),
 ('facebook_link', 'https://www.facebook.com/chiccharms'),
-('instagram_link', 'https://www.instagram.com/chiccharms');
+('instagram_link', 'https://www.instagram.com/chiccharms'),
+('about_us_text', 'Welcome to Chic Charms! We offer exquisite bags for every style and occasion. Our mission is to provide high-quality, fashionable accessories that elevate your look.'),
+('contact_email', 'info@chiccharms.com'),
+('contact_phone', '+8801XXXXXXXXX'),
+('contact_address', '123 Fashion Street, Dhaka, Bangladesh'),
+('shipping_returns_policy', 'Shipping: We offer nationwide shipping. Delivery within Dhaka takes 2-3 business days, outside Dhaka takes 5-7 business days. Returns: Items can be returned within 7 days of purchase if unused and in original condition.');
