@@ -23,7 +23,24 @@ const upload = multer({ storage: storage });
 // Get all products (public)
 router.get('/', async (req, res) => {
   try {
-    const [products] = await pool.query('SELECT * FROM products');
+    const { sort, limit, is_featured } = req.query;
+    let query = 'SELECT * FROM products';
+    const queryParams = [];
+
+    if (is_featured !== undefined) {
+      const isFeaturedBoolean = is_featured === 'true';
+      query += ' WHERE is_featured = ?';
+      queryParams.push(isFeaturedBoolean);
+    }
+
+    if (sort === 'newest') {
+      query += ' ORDER BY created_at DESC';
+    }
+    if (limit) {
+      query += ` LIMIT ${parseInt(limit)}`;
+    }
+
+    const [products] = await pool.query(query, queryParams);
     for (let product of products) {
       const [images] = await pool.query('SELECT id, image_url, is_primary FROM product_images WHERE product_id = ?', [product.id]);
       const [variants] = await pool.query('SELECT id, color, quantity_in_stock FROM product_variants WHERE product_id = ?', [product.id]);
@@ -66,10 +83,12 @@ router.get('/:id', async (req, res) => {
 router.post('/', authMiddleware, upload.array('images', 10), async (req, res) => {
   console.log('Request Body (Add Product):', req.body);
   console.log('Request Files (Add Product):', req.files);
-  const { name, description, price, variants } = req.body; // variants is a JSON string
+  const { name, description, price, variants, is_featured } = req.body; // variants is a JSON string
+  const createdBy = req.manager.id; // Assuming authMiddleware sets req.manager.id
+  const isFeaturedBoolean = is_featured === 'true'; // Convert string to boolean
 
   try {
-    const [result] = await pool.query('INSERT INTO products (name, description, price) VALUES (?, ?, ?)', [name, description, price]);
+    const [result] = await pool.query('INSERT INTO products (name, description, price, created_by, is_featured) VALUES (?, ?, ?, ?, ?)', [name, description, price, createdBy, isFeaturedBoolean]);
     const productId = result.insertId;
 
     if (req.files && req.files.length > 0) {
@@ -105,11 +124,13 @@ router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) 
   const { id } = req.params;
   console.log('Request Body (Update Product):', req.body);
   console.log('Request Files (Update Product):', req.files);
-  const { name, description, price, variants, imagesToDelete, primaryImageId } = req.body;
+  const { name, description, price, variants, imagesToDelete, primaryImageId, is_featured } = req.body;
+  const isFeaturedBoolean = is_featured === 'true'; // Convert string to boolean
+  console.log('Received is_featured for update:', is_featured);
 
   try {
     // Update product details
-    await pool.query('UPDATE products SET name = ?, description = ?, price = ? WHERE id = ?', [name, description, price, id]);
+    await pool.query('UPDATE products SET name = ?, description = ?, price = ?, is_featured = ? WHERE id = ?', [name, description, price, isFeaturedBoolean, id]);
 
     // Handle variants
     if (variants) {

@@ -11,8 +11,18 @@ CREATE TABLE products (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
-  price DECIMAL(10, 2) NOT NULL
+  price DECIMAL(10, 2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_by INT,
+  is_featured BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (created_by) REFERENCES managers(id) ON DELETE SET NULL
 );
+
+ALTER TABLE products
+ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN created_by INT,
+ADD COLUMN is_featured BOOLEAN DEFAULT FALSE,
+ADD FOREIGN KEY (created_by) REFERENCES managers(id) ON DELETE SET NULL;
 
 -- Insert sample product data
 INSERT INTO products (name, description, price) VALUES
