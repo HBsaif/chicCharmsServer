@@ -58,6 +58,7 @@ CREATE TABLE product_variants (
   id INT AUTO_INCREMENT PRIMARY KEY,
   product_id INT NOT NULL,
   color VARCHAR(50) NOT NULL,
+  color_name VARCHAR(255),
   quantity_in_stock INT NOT NULL,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );

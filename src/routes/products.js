@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
     const [products] = await pool.query(query, queryParams);
     for (let product of products) {
       const [images] = await pool.query('SELECT id, image_url, is_primary FROM product_images WHERE product_id = ?', [product.id]);
-      const [variants] = await pool.query('SELECT id, color, quantity_in_stock FROM product_variants WHERE product_id = ?', [product.id]);
+      const [variants] = await pool.query('SELECT id, color, color_name, quantity_in_stock FROM product_variants WHERE product_id = ?', [product.id]);
       product.images = images;
       product.variants = variants;
     }
@@ -67,7 +67,7 @@ router.get('/:id', async (req, res) => {
     const product = products[0];
 
     const [images] = await pool.query('SELECT id, image_url, is_primary FROM product_images WHERE product_id = ?', [id]);
-    const [variants] = await pool.query('SELECT id, color, quantity_in_stock FROM product_variants WHERE product_id = ?', [id]);
+    const [variants] = await pool.query('SELECT id, color, color_name, quantity_in_stock FROM product_variants WHERE product_id = ?', [id]);
 
     product.images = images;
     product.variants = variants;
@@ -83,7 +83,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', authMiddleware, upload.array('images', 10), async (req, res) => {
   console.log('Request Body (Add Product):', req.body);
   console.log('Request Files (Add Product):', req.files);
-  const { name, description, price, variants, is_featured } = req.body; // variants is a JSON string
+  const { name, description, price, variants, is_featured, color_name } = req.body; // variants is a JSON string
   const createdBy = req.manager.id; // Assuming authMiddleware sets req.manager.id
   const isFeaturedBoolean = is_featured === 'true'; // Convert string to boolean
 
@@ -106,9 +106,10 @@ router.post('/', authMiddleware, upload.array('images', 10), async (req, res) =>
         const variantInserts = parsedVariants.map(variant => [
           productId,
           variant.color,
+          variant.color_name,
           variant.quantity_in_stock
         ]);
-        await pool.query('INSERT INTO product_variants (product_id, color, quantity_in_stock) VALUES ?', [variantInserts]);
+        await pool.query('INSERT INTO product_variants (product_id, color, color_name, quantity_in_stock) VALUES ?', [variantInserts]);
       }
     }
 
@@ -147,7 +148,7 @@ router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) 
 
       for (const variant of parsedVariants) {
         if (variant.id) { // Existing variant
-          await pool.query('UPDATE product_variants SET color = ?, quantity_in_stock = ? WHERE id = ?', [variant.color, variant.quantity_in_stock, variant.id]);
+          await pool.query('UPDATE product_variants SET color = ?, color_name = ?, quantity_in_stock = ? WHERE id = ?', [variant.color, variant.color_name, variant.quantity_in_stock, variant.id]);
         } else { // New variant
           await pool.query('INSERT INTO product_variants (product_id, color, quantity_in_stock) VALUES (?, ?, ?)', [id, variant.color, variant.quantity_in_stock]);
         }
@@ -202,12 +203,27 @@ router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) 
 router.delete('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {
+    // Get image URLs associated with the product
+    const [images] = await pool.query('SELECT image_url FROM product_images WHERE product_id = ?', [id]);
+
+    // Delete product from database (this should also cascade delete product_images if foreign key is set up with ON DELETE CASCADE)
     const [result] = await pool.query('DELETE FROM products WHERE id = ?', [id]);
+
     if (result.affectedRows === 0) {
-      res.status(404).json({ message: 'Product not found' });
-    } else {
-      res.json({ message: 'Product deleted' });
+      return res.status(404).json({ message: 'Product not found' });
     }
+
+    // Delete associated physical image files
+    for (const image of images) {
+      const imagePath = path.join(UPLOADS_BASE_DIR, path.basename(image.image_url));
+      fs.unlink(imagePath, (err) => {
+        if (err) {
+          console.error('Error deleting physical image file:', err);
+        }
+      });
+    }
+
+    res.json({ message: 'Product deleted' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error deleting product' });
