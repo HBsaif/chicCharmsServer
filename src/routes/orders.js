@@ -16,11 +16,12 @@ router.get('/', authMiddleware, async (req, res) => {
       o.customer_address,
       u.username AS user_username,
       u.email AS user_email,
-      GROUP_CONCAT(CONCAT(pi.name, ' (x', oi.quantity, ')') SEPARATOR '; ') AS products_summary
+      GROUP_CONCAT(CONCAT(p.name, ' (', pv.color, ') (x', oi.quantity, ')') SEPARATOR '; ') AS products_summary
     FROM orders o
     LEFT JOIN users u ON o.user_id = u.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
-    LEFT JOIN products pi ON oi.product_id = pi.id
+    LEFT JOIN product_variants pv ON oi.variant_id = pv.id
+    LEFT JOIN products p ON pv.product_id = p.id
     LEFT JOIN order_statuses os ON o.status_id = os.id
     GROUP BY o.id
     ORDER BY o.order_date DESC
@@ -47,6 +48,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         o.customer_phone,
         o.customer_address,
         o.total_amount,
+        o.shipping_cost,
         os.status_name AS status,
         o.order_date,
         u.username AS user_username,
@@ -66,9 +68,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
         oi.quantity,
         oi.price,
         p.name AS product_name,
-        p.imageUrl
+        pv.color,
+        COALESCE(
+            (SELECT image_url FROM product_images WHERE product_id = p.id AND is_primary = TRUE LIMIT 1),
+            (SELECT image_url FROM product_images WHERE product_id = p.id LIMIT 1)
+        ) AS image_url
       FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
+      JOIN product_variants pv ON oi.variant_id = pv.id
+      JOIN products p ON pv.product_id = p.id
       WHERE oi.order_id = ?
     `, [id]);
 
@@ -120,7 +127,7 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
 
 // Place a new order (public)
 router.post('/place', async (req, res) => {
-  const { userId, totalAmount, items, shippingInfo } = req.body;
+  const { userId, totalAmount, items, shippingInfo, shippingCost } = req.body;
   const { name, phone, address } = shippingInfo; // Destructure new fields
   let connection;
 
@@ -130,16 +137,16 @@ router.post('/place', async (req, res) => {
 
     // Insert into orders table with new customer info
     const [orderResult] = await connection.query(
-      'INSERT INTO orders (user_id, customer_name, customer_phone, customer_address, total_amount, status_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, name, phone, address, totalAmount, 1]
+      'INSERT INTO orders (user_id, customer_name, customer_phone, customer_address, total_amount, shipping_cost, status_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userId, name, phone, address, totalAmount, shippingCost, 1]
     );
     const orderId = orderResult.insertId;
 
     // Insert into order_items table
     for (const item of items) {
       await connection.query(
-        'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)',
-        [orderId, item.productId, item.quantity, item.price]
+        'INSERT INTO order_items (order_id, variant_id, quantity, price) VALUES (?, ?, ?, ?)',
+        [orderId, item.variantId, item.quantity, item.price]
       );
     }
 

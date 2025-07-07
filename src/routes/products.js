@@ -26,7 +26,9 @@ router.get('/', async (req, res) => {
     const [products] = await pool.query('SELECT * FROM products');
     for (let product of products) {
       const [images] = await pool.query('SELECT id, image_url, is_primary FROM product_images WHERE product_id = ?', [product.id]);
+      const [variants] = await pool.query('SELECT id, color, quantity_in_stock FROM product_variants WHERE product_id = ?', [product.id]);
       product.images = images;
+      product.variants = variants;
     }
     res.json(products);
   } catch (err) {
@@ -35,11 +37,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get a single product by ID (public)
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [products] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+
+    if (products.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const product = products[0];
+
+    const [images] = await pool.query('SELECT id, image_url, is_primary FROM product_images WHERE product_id = ?', [id]);
+    const [variants] = await pool.query('SELECT id, color, quantity_in_stock FROM product_variants WHERE product_id = ?', [id]);
+
+    product.images = images;
+    product.variants = variants;
+
+    res.json(product);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching product' });
+  }
+});
+
 // Add a new product (admin only) with image upload
 router.post('/', authMiddleware, upload.array('images', 10), async (req, res) => {
   console.log('Request Body (Add Product):', req.body);
   console.log('Request Files (Add Product):', req.files);
-  const { name, description, price } = req.body;
+  const { name, description, price, variants } = req.body; // variants is a JSON string
 
   try {
     const [result] = await pool.query('INSERT INTO products (name, description, price) VALUES (?, ?, ?)', [name, description, price]);
@@ -54,6 +81,18 @@ router.post('/', authMiddleware, upload.array('images', 10), async (req, res) =>
       await pool.query('INSERT INTO product_images (product_id, image_url, is_primary) VALUES ?', [imageInserts]);
     }
 
+    if (variants) {
+      const parsedVariants = JSON.parse(variants);
+      if (parsedVariants.length > 0) {
+        const variantInserts = parsedVariants.map(variant => [
+          productId,
+          variant.color,
+          variant.quantity_in_stock
+        ]);
+        await pool.query('INSERT INTO product_variants (product_id, color, quantity_in_stock) VALUES ?', [variantInserts]);
+      }
+    }
+
     res.status(201).json({ message: 'Product added', productId: productId });
   } catch (err) {
     console.error(err);
@@ -66,11 +105,33 @@ router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) 
   const { id } = req.params;
   console.log('Request Body (Update Product):', req.body);
   console.log('Request Files (Update Product):', req.files);
-  const { name, description, price, imagesToDelete, primaryImageId } = req.body;
+  const { name, description, price, variants, imagesToDelete, primaryImageId } = req.body;
 
   try {
     // Update product details
-    const [result] = await pool.query('UPDATE products SET name = ?, description = ?, price = ? WHERE id = ?', [name, description, price, id]);
+    await pool.query('UPDATE products SET name = ?, description = ?, price = ? WHERE id = ?', [name, description, price, id]);
+
+    // Handle variants
+    if (variants) {
+      const parsedVariants = JSON.parse(variants);
+      const [existingVariants] = await pool.query('SELECT * FROM product_variants WHERE product_id = ?', [id]);
+
+      const existingVariantIds = existingVariants.map(v => v.id);
+      const incomingVariantIds = parsedVariants.filter(v => v.id).map(v => v.id);
+
+      const variantsToDelete = existingVariantIds.filter(id => !incomingVariantIds.includes(id));
+      if (variantsToDelete.length > 0) {
+        await pool.query('DELETE FROM product_variants WHERE id IN (?)', [variantsToDelete]);
+      }
+
+      for (const variant of parsedVariants) {
+        if (variant.id) { // Existing variant
+          await pool.query('UPDATE product_variants SET color = ?, quantity_in_stock = ? WHERE id = ?', [variant.color, variant.quantity_in_stock, variant.id]);
+        } else { // New variant
+          await pool.query('INSERT INTO product_variants (product_id, color, quantity_in_stock) VALUES (?, ?, ?)', [id, variant.color, variant.quantity_in_stock]);
+        }
+      }
+    }
 
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
@@ -108,11 +169,8 @@ router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) 
       await pool.query('UPDATE product_images SET is_primary = TRUE WHERE id = ? AND product_id = ?', [primaryImageId, id]);
     }
 
-    if (result.affectedRows === 0) {
-      res.status(404).json({ message: 'Product not found' });
-    } else {
-      res.json({ message: 'Product updated' });
-    }
+    res.json({ message: 'Product updated' });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error updating product' });

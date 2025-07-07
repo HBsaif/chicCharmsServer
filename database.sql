@@ -42,6 +42,25 @@ INSERT INTO product_images (product_id, image_url, is_primary) VALUES
 (4, '/uploads/backpack_1.jpg', TRUE),
 (4, '/uploads/backpack_2.jpg', FALSE);
 
+-- Section 2.2: Product Variants Table
+DROP TABLE IF EXISTS product_variants;
+CREATE TABLE product_variants (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  color VARCHAR(50) NOT NULL,
+  quantity_in_stock INT NOT NULL,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+-- Insert sample product variant data
+INSERT INTO product_variants (product_id, color, quantity_in_stock) VALUES
+(1, 'Gold', 10),
+(1, 'Silver', 5),
+(2, 'Black', 15),
+(2, 'Brown', 8),
+(3, 'Tan', 12),
+(4, 'Black', 20);
+
 -- Section 3: Managers Table
 -- Run this section to create or recreate the managers table.
 -- This will clear existing manager data if the table already exists.
@@ -108,11 +127,11 @@ DROP TABLE IF EXISTS order_items;
 CREATE TABLE order_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_id INT NOT NULL,
-  product_id INT NOT NULL,
+  variant_id INT NOT NULL,
   quantity INT NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-  FOREIGN KEY (product_id) REFERENCES products(id)
+  FOREIGN KEY (variant_id) REFERENCES product_variants(id)
 );
 
 -- Insert sample order data
@@ -121,10 +140,10 @@ INSERT INTO orders (user_id, customer_name, customer_phone, customer_address, to
 (NULL, 'Guest Customer', '098-765-4321', '456 Oak Ave, Somewhere, USA', 65.00, 4);
 
 -- Insert sample order items data
-INSERT INTO order_items (order_id, product_id, quantity, price) VALUES
+INSERT INTO order_items (order_id, variant_id, quantity, price) VALUES
 (1, 1, 1, 75.00),
-(1, 2, 1, 120.00),
-(2, 3, 1, 65.00);
+(1, 3, 1, 120.00),
+(2, 5, 1, 65.00);
 
 -- Section 8: Configurations Table
 DROP TABLE IF EXISTS configurations;
