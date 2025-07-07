@@ -161,4 +161,5 @@ INSERT INTO configurations (config_key, config_value) VALUES
 ('contact_email', 'info@chiccharms.com'),
 ('contact_phone', '+8801XXXXXXXXX'),
 ('contact_address', '123 Fashion Street, Dhaka, Bangladesh'),
-('shipping_returns_policy', 'Shipping: We offer nationwide shipping. Delivery within Dhaka takes 2-3 business days, outside Dhaka takes 5-7 business days. Returns: Items can be returned within 7 days of purchase if unused and in original condition.');
+('shipping_returns_policy', 'Shipping: We offer nationwide shipping. Delivery within Dhaka takes 2-3 business days, outside Dhaka takes 5-7 business days. Returns: Items can be returned within 7 days of purchase if unused and in original condition.'),
+('testimonials_data', '[{"author": "Sarah J.", "text": "I absolutely love my new bag! The quality is amazing and it\'s so stylish. I get compliments on it everywhere I go."}, {"author": "Emily R.", "text": "Chic Charms has the best selection of bags. I found the perfect one for my sister\'s birthday and she was thrilled."}, {"author": "Jessica L.", "text": "I\'m so impressed with the customer service. They were so helpful and my order arrived quickly. I\'ll definitely be shopping here again."}]');
