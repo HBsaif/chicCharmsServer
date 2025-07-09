@@ -19,7 +19,8 @@ const compressAndSaveImages = async (req, res, next) => {
     return next();
   }
 
-  const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+  const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', '..', '..', 'uploads');
+  // console.log('Uploads Directory (products.js):', uploadsDir);
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -30,6 +31,7 @@ const compressAndSaveImages = async (req, res, next) => {
       const filename = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
       const filepath = path.join(uploadsDir, filename);
 
+      console.log('File Path (products.js):', filepath);
       await sharp(file.buffer)
         .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
@@ -47,12 +49,12 @@ const compressAndSaveImages = async (req, res, next) => {
 router.get('/', async (req, res) => {
   try {
     const { sort, limit, is_featured } = req.query;
-    let query = 'SELECT * FROM products';
+    let query = 'SELECT * FROM products WHERE is_deleted = FALSE';
     const queryParams = [];
 
     if (is_featured !== undefined) {
       const isFeaturedBoolean = is_featured === 'true';
-      query += ' WHERE is_featured = ?';
+      query += ' AND is_featured = ?';
       queryParams.push(isFeaturedBoolean);
     }
 
@@ -81,7 +83,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const [products] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+    const [products] = await pool.query('SELECT * FROM products WHERE id = ? AND is_deleted = FALSE', [id]);
 
     if (products.length === 0) {
       return res.status(404).json({ message: 'Product not found' });
@@ -226,30 +228,16 @@ router.put('/:id', authMiddleware, upload.array('images', 10), compressAndSaveIm
 router.delete('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {
-    // Get image URLs associated with the product
-    const [images] = await pool.query('SELECT image_url FROM product_images WHERE product_id = ?', [id]);
-
-    // Delete product from database (this should also cascade delete product_images if foreign key is set up with ON DELETE CASCADE)
-    const [result] = await pool.query('DELETE FROM products WHERE id = ?', [id]);
+    const [result] = await pool.query('UPDATE products SET is_deleted = TRUE WHERE id = ?', [id]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Delete associated physical image files
-    for (const image of images) {
-      const imagePath = path.join(UPLOADS_BASE_DIR, path.basename(image.image_url));
-      fs.unlink(imagePath, (err) => {
-        if (err) {
-          console.error('Error deleting physical image file:', err);
-        }
-      });
-    }
-
-    res.json({ message: 'Product deleted' });
+    res.json({ message: 'Product archived successfully' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error deleting product' });
+    res.status(500).json({ message: 'Error archiving product' });
   }
 });
 
