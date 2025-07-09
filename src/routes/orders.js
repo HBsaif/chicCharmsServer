@@ -16,7 +16,7 @@ router.get('/', authMiddleware, async (req, res) => {
       o.customer_address,
       u.username AS user_username,
       u.email AS user_email,
-      GROUP_CONCAT(CONCAT(p.name, ' (', pv.color, ') (x', oi.quantity, ')') SEPARATOR '; ') AS products_summary
+      GROUP_CONCAT(CONCAT(p.name, ' (', pv.color_name, ') (x', oi.quantity, ')') SEPARATOR '; ') AS products_summary
     FROM orders o
     LEFT JOIN users u ON o.user_id = u.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
