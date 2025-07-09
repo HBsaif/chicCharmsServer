@@ -19,7 +19,7 @@ const compressAndSaveImages = async (req, res, next) => {
     return next();
   }
 
-  const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', '..', '..', 'uploads');
+  const uploadsDir = UPLOADS_BASE_DIR;
   // console.log('Uploads Directory (products.js):', uploadsDir);
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
