@@ -9,16 +9,39 @@ const fs = require('fs');
 const UPLOADS_BASE_DIR = path.join(__dirname, '..', '..', 'uploads');
 
 // Set up multer for file storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Images will be stored in the 'uploads' directory
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
-  },
-});
+const sharp = require('sharp');
 
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+const compressAndSaveImages = async (req, res, next) => {
+  if (!req.files) {
+    return next();
+  }
+
+  const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  req.body.images = req.body.images || [];
+  await Promise.all(
+    req.files.map(async file => {
+      const filename = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      await sharp(file.buffer)
+        .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toFile(filepath);
+
+      // Store the filename to be saved in the database
+      file.filename = filename;
+    })
+  );
+
+  next();
+};
 
 // Get all products (public)
 router.get('/', async (req, res) => {
@@ -80,7 +103,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Add a new product (admin only) with image upload
-router.post('/', authMiddleware, upload.array('images', 10), async (req, res) => {
+router.post('/', authMiddleware, upload.array('images', 10), compressAndSaveImages, async (req, res) => {
   console.log('Request Body (Add Product):', req.body);
   console.log('Request Files (Add Product):', req.files);
   const { name, description, price, variants, is_featured, color_name } = req.body; // variants is a JSON string
@@ -121,7 +144,7 @@ router.post('/', authMiddleware, upload.array('images', 10), async (req, res) =>
 });
 
 // Update a product (admin only) with optional image upload
-router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) => {
+router.put('/:id', authMiddleware, upload.array('images', 10), compressAndSaveImages, async (req, res) => {
   const { id } = req.params;
   console.log('Request Body (Update Product):', req.body);
   console.log('Request Files (Update Product):', req.files);

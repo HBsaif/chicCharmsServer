@@ -69,6 +69,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         oi.price,
         p.name AS product_name,
         pv.color,
+        pv.color_name,
         COALESCE(
             (SELECT image_url FROM product_images WHERE product_id = p.id AND is_primary = TRUE LIMIT 1),
             (SELECT image_url FROM product_images WHERE product_id = p.id LIMIT 1)

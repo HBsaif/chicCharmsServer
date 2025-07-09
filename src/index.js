@@ -13,7 +13,9 @@ const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+const path = require('path');
+
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 const apiPrefix = process.env.API_PREFIX || '';
 
