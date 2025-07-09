@@ -173,7 +173,7 @@ router.put('/:id', authMiddleware, upload.array('images', 10), compressAndSaveIm
         if (variant.id) { // Existing variant
           await pool.query('UPDATE product_variants SET color = ?, color_name = ?, quantity_in_stock = ? WHERE id = ?', [variant.color, variant.color_name, variant.quantity_in_stock, variant.id]);
         } else { // New variant
-          await pool.query('INSERT INTO product_variants (product_id, color, quantity_in_stock) VALUES (?, ?, ?)', [id, variant.color, variant.quantity_in_stock]);
+          await pool.query('INSERT INTO product_variants (product_id, color, color_name, quantity_in_stock) VALUES (?, ?, ?, ?)', [id, variant.color, variant.color_name, variant.quantity_in_stock]);
         }
       }
     }
