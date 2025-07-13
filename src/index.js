@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 const path = require('path');
 
-const staticPath = process.env.UPLOADS_DIR || path.join(__dirname, '..', '..', 'uploads');
+const staticPath = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'uploads');
 // console.log('Static Files Serving Path (index.js):', staticPath);
 app.use('/uploads', express.static(staticPath));
 
