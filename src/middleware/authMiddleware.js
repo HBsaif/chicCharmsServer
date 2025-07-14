@@ -4,7 +4,9 @@ const jwt = require('jsonwebtoken');
 const jwtSecret = 'supersecretjwtkey';
 
 const authMiddleware = (req, res, next) => {
-  const token = req.header('x-auth-token');
+  const token = req.cookies.token;
+  console.log('req.cookies:', req.cookies);
+  console.log('Token from cookie:', token);
 
   if (!token) {
     return res.status(401).json({ message: 'No token, authorization denied' });

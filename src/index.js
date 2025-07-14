@@ -1,6 +1,7 @@
 require('dotenv').config({ path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env' });
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const productRoutes = require('./routes/products');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -11,8 +12,12 @@ const configurationRoutes = require('./routes/configurations');
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000', // Use CLIENT_ORIGIN from environment variables
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
 const path = require('path');
 
 const staticPath = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'uploads');

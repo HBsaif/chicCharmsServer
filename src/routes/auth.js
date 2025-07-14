@@ -39,13 +39,28 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1h' }, // Token expires in 1 hour
       (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+          sameSite: 'Lax', // Protect against CSRF attacks
+          maxAge: 3600000 // 1 hour in milliseconds
+        });
+        res.json({ message: 'Logged in successfully' });
       }
     );
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+  });
+  res.json({ message: 'Logged out successfully' });
 });
 
 router.put('/change-password', authMiddleware, async (req, res) => {
